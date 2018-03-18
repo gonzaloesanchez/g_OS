@@ -12,7 +12,8 @@
 #include <stdint.h>
 
 #define STACK_SIZE 128
-#define FULL_STACKING_SIZE 16	//16 registros, sin contar Floating point registers
+#define AUTO_STACKING_SIZE 8	// registros que hacen stacking automatico, sin contar Floating point registers
+#define FULL_STACKING_SIZE 16	//Todos los regstros excepto FPunit
 
 //posiciones de registros de automatic stacking
 #define PSR		1

@@ -14,10 +14,16 @@
 
 .text
 	.global SysTick_Handler
-	.extern sp1,sp2
+	.extern sp1,sp2,sistick_ms
 	.thumb_func
 
 SysTick_Handler:
+	//sistick_ms++
+	ldr r0,=sistick_ms
+	ldr r1,[r0]
+	add r1,1
+	str r1,[r0]
+
 	ldr r0, =state		// r0 = &state
 	ldr r1, [r0]		//r1 = *r0
 	tbb [pc,r1]
@@ -37,6 +43,19 @@ case0:
 	ldr r1,[r0]
 	msr msp,r1		//pisamos el MSP, perdimos el valor original y por lo tanto
 					//los valores de R0-R3, R12, PC, LR y xPSR
+
+	pop {R4-R11}
+	/**
+	*	el MSP esta apuntando al sp1, y el init task cargo una pila de 16 registros
+	*   debemos hacer el pop de los 8 que no se hacen automaticos para que el sp1 quede
+	*	alineado a los que hacen unstacking de forma automatica
+	*   esto en realidad es basura
+	*
+	*	El primer llamado de cada tarea tendra un valor basura en sus registros R4-R11
+	*	dado que estamos haciendo pop de valores de Stack no inicializados.
+	*	Luego en sucesivas interrupciones, estos valores tendran sentido
+	*/
+
 	//break;
 	b case_end
 
@@ -45,7 +64,7 @@ case1:
 	mov r1,2
 	str r1,[r0]
 
-	push {R4-R11}	//el MSP esta apuntando al sp1, por lo que hacemos correr la pila
+	push {R4-R11}	//el MSP esta apuntando al sp1, por lo que hacemos correr la pila (+8)
 
 	//sp1 = sp
 	ldr r0,=sp1

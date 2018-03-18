@@ -28,6 +28,8 @@ static uint32_t pila2[STACK_SIZE];
 uint32_t sp1;
 uint32_t sp2;
 
+uint32_t sistick_ms;
+
 
 /*==================[internal functions definition]==========================*/
 
@@ -52,13 +54,19 @@ void SysTick_Handler(void)
 
 void task1(void)  {
 	while (1) {
-		led_toogle(LED_ROJO_1);
+		if (sistick_ms % 1001 == 0)
+			led_set(LED_ROJO_1,true);
+		else
+			led_set(LED_ROJO_1,false);
 	}
 }
 
 void task2(void)  {
 	while (1) {
-		led_toogle(LED_AMARILLO_2);
+		if (sistick_ms % 1500 == 0)
+			led_set(LED_AMARILLO_2,true);
+		else
+			led_set(LED_AMARILLO_2,false);
 	}
 }
 
