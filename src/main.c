@@ -3,8 +3,9 @@
 #include <stdint.h>
 #include "main.h"
 
-#include "g_OS_Core.h"			//solamente para versiones prueba
+#include "g_OS_Core.h"
 #include "board.h"
+#include "Leds.h"
 
 /*==================[macros and definitions]=================================*/
 
@@ -46,24 +47,18 @@ void SysTick_Handler(void)
 */
 
 /**
- * TODO:	Agregar inicializaciones de leds
- * 			Agregar prender leds en las tareas
- * 			Agregar Push & Pop de registros restantes
+ * TODO:	Agregar Push & Pop de registros restantes
  */
 
-void task1(void)
-{
-	int i;
+void task1(void)  {
 	while (1) {
-		i++;
+		led_toogle(LED_ROJO_1);
 	}
 }
 
-void task2(void)
-{
-	int j;
+void task2(void)  {
 	while (1) {
-		j++;
+		led_toogle(LED_AMARILLO_2);
 	}
 }
 
