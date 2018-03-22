@@ -20,15 +20,14 @@ static void initHardware(void);
 
 /*==================[internal data definition]===============================*/
 
-static uint32_t pila1[STACK_SIZE];
-static uint32_t pila2[STACK_SIZE];
+uint32_t pila1[STACK_SIZE/4];
+uint32_t pila2[STACK_SIZE/4];
 
 /*==================[external data definition]===============================*/
 
 uint32_t sp1;
 uint32_t sp2;
 
-uint32_t sistick_ms;
 
 
 /*==================[internal functions definition]==========================*/
@@ -42,31 +41,20 @@ static void initHardware(void)
 
 /*==================[external functions definition]==========================*/
 
-/*
-void SysTick_Handler(void)
-{
-}
-*/
 
-/**
- * TODO:	Agregar Push & Pop de registros restantes
- */
+
 
 void task1(void)  {
+	uint32_t i;
 	while (1) {
-		if (sistick_ms % 1001 == 0)
-			led_set(LED_ROJO_1,true);
-		else
-			led_set(LED_ROJO_1,false);
+		i++;
 	}
 }
 
 void task2(void)  {
+	uint32_t i;
 	while (1) {
-		if (sistick_ms % 1500 == 0)
-			led_set(LED_AMARILLO_2,true);
-		else
-			led_set(LED_AMARILLO_2,false);
+		i++;
 	}
 }
 
