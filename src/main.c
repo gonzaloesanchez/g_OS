@@ -20,13 +20,9 @@ static void initHardware(void);
 
 /*==================[internal data definition]===============================*/
 
-uint32_t pila1[STACK_SIZE/4];
-uint32_t pila2[STACK_SIZE/4];
+task g_sTarea1, g_sTarea2, g_sTarea3;
 
 /*==================[external data definition]===============================*/
-
-uint32_t sp1;
-uint32_t sp2;
 
 
 
@@ -58,14 +54,21 @@ void task2(void)  {
 	}
 }
 
-int main(void)
-{
+void task3(void)  {
+	uint32_t k;
+	while (1) {
+		k++;
+	}
+}
+
+int main(void)  {
 	initHardware();
 
-	init_task(task1, pila1, &sp1);
-	init_task(task2, pila2, &sp2);
+	init_task(task1, &g_sTarea1,1);
+	init_task(task2, &g_sTarea2,2);
+	init_task(task3, &g_sTarea3,1);
 
-	start_os();
+	start_os(&g_sTarea1);
 
 	while (1) {
 	}
