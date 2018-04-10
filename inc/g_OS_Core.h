@@ -26,6 +26,10 @@
 #define AUTO_STACKING_SIZE	8	// registros que hacen stacking automatico, sin contar Floating point registers
 #define FULL_STACKING_SIZE	17	//Todos los regstros excepto FPunit
 #define TASK_NAME_SIZE		10
+#define MAX_TASK_NUM		32	//cantidad maxima de tareas a definir. Esto es 31 tareas de usuario + Idle
+
+//definiciones de codigos de error
+#define ERR_OS_CANT_TAREAS		-1
 
 //posiciones de registros de automatic stacking
 #define PSR		1
@@ -52,28 +56,55 @@
 #define INIT_xPSR 	1 << 24
 #define EXEC_RETURN	0xFFFFFFF9
 
-extern uint32_t pila1[STACK_SIZE/4];
-extern uint32_t pila2[STACK_SIZE/4];
+#define __WEAK__   __attribute__((weak))
 
-extern uint32_t sp1;
-extern uint32_t sp2;
+/********************************************************************************
+ * Definicion de los estados posibles para las tareas
+ *******************************************************************************/
+
+enum _estadoTarea  {
+	ESTADO_RESERVADO,
+	TAREA_READY,
+	TAREA_RUNNING,
+	TAREA_BLOCKED,
+	TAREA_HALTED
+};
+
+typedef enum _estadoTarea estadoTarea;
 
 
+/********************************************************************************
+ * Definicion de la estructura para cada tarea
+ *******************************************************************************/
 struct _task  {
 	uint32_t pila[STACK_SIZE/4];
 	uint32_t sp;
 	void *entry_point;
 	uint8_t task_id;
+	estadoTarea estado;
 	uint8_t prioridad;
 	char nombre[TASK_NAME_SIZE];
-	struct _task *tarea_siguiente;
 };
 
 typedef struct _task task;
 
+/********************************************************************************
+ * Definicion de la estructura de control para el sistema operativo
+ *******************************************************************************/
+struct _osControl  {
+	void *ListaTareas[MAX_TASK_NUM];		//array de punteros a tareas
+	int8_t Error;						//variable que contiene el ultimo error generado
+	bool bStartOS;					//esta bandera es para el comienzo de cambio de contexto
+	uint8_t cantidad_Tareas;		//cantidad de tareas definidas por el usuario + tarea idle
+
+	task *spTarea_actual;				//definicion de puntero para tarea actual
+	task *spTarea_siguiente;			//definicion de puntero para tarea siguiente
+};
+
+typedef struct _osControl osControl;
 
 void init_task(void *tarea, task *tarea_struct, uint8_t prioridad);
-void start_os(task *primera_tarea);
+void start_os();
 void ReturnHook(void);
 
 

@@ -41,21 +41,21 @@ static void initHardware(void)
 
 
 void task1(void)  {
-	uint32_t i;
+	uint32_t i = 0;
 	while (1) {
 		i++;
 	}
 }
 
 void task2(void)  {
-	uint32_t i;
+	uint32_t i = 0;
 	while (1) {
 		i++;
 	}
 }
 
 void task3(void)  {
-	uint32_t k;
+	uint32_t k = 0;
 	while (1) {
 		k++;
 	}
@@ -68,7 +68,7 @@ int main(void)  {
 	init_task(task2, &g_sTarea2,2);
 	init_task(task3, &g_sTarea3,1);
 
-	start_os(&g_sTarea1);
+	start_os();
 
 	while (1) {
 	}
