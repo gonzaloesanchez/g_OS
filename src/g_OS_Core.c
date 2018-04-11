@@ -11,7 +11,8 @@
  * Definiciones necesarias para el funcionamiento del Sistema Operativo
  */
 static osControl g_sControl_OS;
-task g_sIdleTask;					//definicion de contexto para tarea IDLE
+static task g_sIdleTask;					//definicion de contexto para tarea IDLE
+uint32_t g_ui32Ticks = 0;			//contador global
 
 /********************************************************************************
  * Definiciones de funciones que el usuario puede poblar con codigo
@@ -22,7 +23,9 @@ __WEAK__ void ReturnHook(void)  {
 }
 
 __WEAK__ void taskIdle(void)  {
-	__WFI();
+	while(1)  {
+		__WFI();
+	}
 }
 
 __WEAK__ void ErrorHook(void *Caller)  {
@@ -65,6 +68,7 @@ void init_task(void *tarea, task *tarea_struct, uint8_t prioridad)  {
 		tarea_struct->task_id = id;					//le asignamos id, la proxima tarea a definir tendra id+1
 		tarea_struct->prioridad = prioridad;		//seteamos la prioridad (va a ser utilizado mas adelante)
 		tarea_struct->estado = TAREA_READY;			//todas las tareas se crean en estado READY
+		tarea_struct->ticks_bloqueada = 0;			//inicializamos la variable que corresponde a bloqueos
 
 		g_sControl_OS.ListaTareas[id] = tarea_struct;			//guardamos el puntero a la tarea que acabamos de definir
 		g_sControl_OS.cantidad_Tareas = id+1;					//nos va a dar la cantidad de tareas definidas (minimo = 2)
@@ -117,6 +121,84 @@ void start_os()  {
 //-------------------------------------------------------------------------------
 
 /********************************************************************************
+ * Scheduler (si hace falta lo escribo en ASM)
+ *******************************************************************************/
+static void scheduler(void)  {
+	/**
+	 * TODO:
+	 * 		1) El scheduler tiene que determinar cual es la tarea siguiente (done)
+	 * 		2) Si todas las tareas estan en blocked, la tarea siguiente sera IDLE
+	 */
+	uint8_t indice;
+	uint8_t cant_bloqueadas = 0;
+	bool Salir = false;
+	task* tarea;		//variable auxiliar para legibilidad
+
+	while (!Salir)  {
+		/*
+		 * Obtenemos la siguiente tarea en el vector
+		 */
+		indice = g_sControl_OS.spTarea_actual->task_id+1;
+
+		/*
+		 * Excluimos a la tarea IDLE. Si todavia quedan tareas, la tarea siguiente es la que sigue en el
+		 * vector lista de tareas. Sino volvemos a apuntar a la tarea 0 que es la primera
+		 */
+		if(!(indice < g_sControl_OS.cantidad_Tareas-1))
+			indice = 0;
+
+		/*
+		 * Cargamos el puntero de la tarea siguiente
+		 */
+		tarea = (task*) g_sControl_OS.ListaTareas[indice];
+
+		/*
+		 * Hacemos un checkeo de si la tarea apuntada con delay con bloqueo ya esta lista para
+		 * ser tenida en cuenta. si es asi, la pasamos a Ready
+		 */
+		if (tarea->ticks_bloqueada == 0 && tarea->estado == TAREA_BLOCKED)
+			tarea->estado = TAREA_READY;
+
+		/*
+		 * Hacemos un check del estado de la tarea siguiente. Si esta en READY la podemos cargar
+		 * en el puntero de la estructura de control sin problemas. Si esta en BLOCKED la pasa por alto
+		 * y busca la siguiente que no se encuentre bloqueada
+		 */
+		switch (tarea->estado)  {
+
+		case TAREA_READY:
+			g_sControl_OS.spTarea_siguiente = tarea;
+			Salir = true;
+			break;
+
+		case TAREA_BLOCKED:
+			cant_bloqueadas++;
+			/*
+			 * Si la cantidad de tareas bloqueadas es igual al total de tareas definidas por usuario
+			 * menos la tarea IDLE, entonces debemos ejecutar IDLE. El puntero a la tarea IDLE esta
+			 * en la posicion cantidad_Tareas-1 (es la ultima tarea siempre)
+			 */
+			if (cant_bloqueadas == g_sControl_OS.cantidad_Tareas-1)  {
+				indice = g_sControl_OS.cantidad_Tareas-1;
+				tarea = (task*) g_sControl_OS.ListaTareas[indice];
+				g_sControl_OS.spTarea_siguiente = tarea;
+				Salir = true;
+			}
+			break;
+
+		case TAREA_HALTED:
+			break;
+		default:
+			;
+
+		}
+
+	}
+
+}
+//-------------------------------------------------------------------------------
+
+/********************************************************************************
  * Get Next Context
  *******************************************************************************/
 uint32_t getNextContext(uint32_t sp_actual)  {
@@ -126,8 +208,10 @@ uint32_t getNextContext(uint32_t sp_actual)  {
 	/*
 	 * Aqui cabe la aclaracion de que TODA LA MAGIA de tarea actual y siguiente sucede en el scheduler
 	 * Esto nos da generalidad para poder cargar tareas por prioridad o irnos a IDLE sin tener que volver
-	 * a tocar esta funcion
+	 * a tocar get_next_context. Siempre que haya que hacer un cambio de contexto debemos haber pasado antes
+	 * por el scheduler
 	 */
+	scheduler();
 
 	/**
 	 * TODO:
@@ -161,39 +245,27 @@ uint32_t getNextContext(uint32_t sp_actual)  {
 }
 //-------------------------------------------------------------------------------
 
-/********************************************************************************
- * Scheduler (si hace falta lo escribo en ASM
- *******************************************************************************/
-void scheduler(void)  {
-	/**
-	 * TODO:
-	 * 		1) El scheduler tiene que determinar cual es la tarea siguiente
-	 * 		2) Si todas las tareas estan en blocked, la tarea siguiente sera IDLE
-	 */
-	uint8_t indice;		//variable auxiliar para legibilidad
-
-	/*
-	 * Obtenemos la siguiente tarea en el vector
-	 */
-	indice = g_sControl_OS.spTarea_actual->task_id+1;
-	/*
-	 * Excluimos a la tarea IDLE. Si todavia quedan tareas, la tarea siguiente es la que sigue en el
-	 * vector lista de tareas. Sino volvemos a apuntar a la tarea 0 que es la primera
-	 */
-	if(indice < g_sControl_OS.cantidad_Tareas-1)  {
-		g_sControl_OS.spTarea_siguiente = (task*) g_sControl_OS.ListaTareas[indice];
-	}
-	else  {
-		g_sControl_OS.spTarea_siguiente = (task*) g_sControl_OS.ListaTareas[0];
-	}
-
-}
-//-------------------------------------------------------------------------------
-
 void SysTick_Handler(void)  {
+	uint8_t i;
+	task *tarea;
 
-	scheduler();			//scheduler debe ser LO MAS CORTO POSIBLE
+	/*
+	 * Systick justamente es el que se encarga de ver todos los temporizadores
+	 * por lo que recorremos todas las tareas que esten definidas y si tienen un
+	 * valor de ticks de bloqueo mayor a cero, lo decrementamos.
+	 */
+	i = 0;
+	while (g_sControl_OS.ListaTareas[i] != NULL)  {
+		tarea = (task *) g_sControl_OS.ListaTareas[i];
+		if(tarea->ticks_bloqueada > 0)
+			tarea->ticks_bloqueada--;
+		i++;
+	}
+	cpu_yield();			//en resumidas cuentas, llamamos a PendSV
+}
 
+
+void cpu_yield(void)  {
 	SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
 
 	/* Instruction Synchronization Barrier: aseguramos que se

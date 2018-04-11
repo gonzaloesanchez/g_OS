@@ -83,6 +83,7 @@ struct _task  {
 	uint8_t task_id;
 	estadoTarea estado;
 	uint8_t prioridad;
+	uint32_t ticks_bloqueada;
 	char nombre[TASK_NAME_SIZE];
 };
 
@@ -105,6 +106,7 @@ typedef struct _osControl osControl;
 
 void init_task(void *tarea, task *tarea_struct, uint8_t prioridad);
 void start_os();
+void cpu_yield(void);
 void ReturnHook(void);
 
 

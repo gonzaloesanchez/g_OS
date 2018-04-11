@@ -4,6 +4,7 @@
 #include "main.h"
 
 #include "g_OS_Core.h"
+#include "g_OS_API.h"
 #include "board.h"
 #include "Leds.h"
 
@@ -41,23 +42,29 @@ static void initHardware(void)
 
 
 void task1(void)  {
-	uint32_t i = 0;
+	int i = 0;
 	while (1) {
 		i++;
+		led_toogle(LED_ROJO_1);
+		osDelay(&g_sTarea1,500);
 	}
 }
 
 void task2(void)  {
-	uint32_t i = 0;
+	int j = 0;
 	while (1) {
-		i++;
+		j++;
+		led_toogle(LED_VERDE_3);
+		osDelay(&g_sTarea2,300);
 	}
 }
 
 void task3(void)  {
-	uint32_t k = 0;
+	int k = 0;
 	while (1) {
 		k++;
+		led_toogle(LED_AMARILLO_2);
+		osDelay(&g_sTarea3,800);
 	}
 }
 
