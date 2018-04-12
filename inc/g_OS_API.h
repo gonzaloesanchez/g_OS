@@ -14,6 +14,12 @@
 extern osControl g_sControl_OS;
 extern uint32_t g_ui32Ticks;
 
-void osDelay(task* caller, uint32_t ticks);
+//prototipos de funciones que el usuario puede poblar
+__WEAK__ void ReturnHook(void);
+__WEAK__ void taskIdle(void);
+__WEAK__ void ErrorHook(void *Caller);
+
+//prototipos de funciones de la API
+void osDelay(uint32_t ticks);
 
 #endif /* G_OS_INC_G_OS_API_H_ */

@@ -6,36 +6,15 @@
  */
 
 #include "g_OS_Core.h"
+#include "g_OS_API.h"
 
 /*
  * Definiciones necesarias para el funcionamiento del Sistema Operativo
  */
-static osControl g_sControl_OS;
+osControl g_sControl_OS;
 static task g_sIdleTask;					//definicion de contexto para tarea IDLE
 uint32_t g_ui32Ticks = 0;			//contador global
 
-/********************************************************************************
- * Definiciones de funciones que el usuario puede poblar con codigo
- *******************************************************************************/
-
-__WEAK__ void ReturnHook(void)  {
-	while(1);
-}
-
-__WEAK__ void taskIdle(void)  {
-	while(1)  {
-		__WFI();
-	}
-}
-
-__WEAK__ void ErrorHook(void *Caller)  {
-	/*
-	 * Revisar el contenido de g_Error para obtener informacion!!
-	 */
-	while(1);
-}
-
-//-------------------------------------------------------------------------------
 
 /********************************************************************************
  * Init Task
@@ -134,12 +113,12 @@ static void scheduler(void)  {
 	bool Salir = false;
 	task* tarea;		//variable auxiliar para legibilidad
 
-	while (!Salir)  {
-		/*
-		 * Obtenemos la siguiente tarea en el vector
-		 */
-		indice = g_sControl_OS.spTarea_actual->task_id+1;
+	/*
+	 * Obtenemos la siguiente tarea en el vector
+	 */
+	indice = g_sControl_OS.spTarea_actual->task_id+1;		//este es nuestro indice de partida
 
+	while (!Salir)  {
 		/*
 		 * Excluimos a la tarea IDLE. Si todavia quedan tareas, la tarea siguiente es la que sigue en el
 		 * vector lista de tareas. Sino volvemos a apuntar a la tarea 0 que es la primera
@@ -152,18 +131,6 @@ static void scheduler(void)  {
 		 */
 		tarea = (task*) g_sControl_OS.ListaTareas[indice];
 
-		/*
-		 * Hacemos un checkeo de si la tarea apuntada con delay con bloqueo ya esta lista para
-		 * ser tenida en cuenta. si es asi, la pasamos a Ready
-		 */
-		if (tarea->ticks_bloqueada == 0 && tarea->estado == TAREA_BLOCKED)
-			tarea->estado = TAREA_READY;
-
-		/*
-		 * Hacemos un check del estado de la tarea siguiente. Si esta en READY la podemos cargar
-		 * en el puntero de la estructura de control sin problemas. Si esta en BLOCKED la pasa por alto
-		 * y busca la siguiente que no se encuentre bloqueada
-		 */
 		switch (tarea->estado)  {
 
 		case TAREA_READY:
@@ -192,6 +159,12 @@ static void scheduler(void)  {
 			;
 
 		}
+
+		/*
+		 * incrementamos el indice
+		 */
+
+		indice++;
 
 	}
 
@@ -257,8 +230,16 @@ void SysTick_Handler(void)  {
 	i = 0;
 	while (g_sControl_OS.ListaTareas[i] != NULL)  {
 		tarea = (task *) g_sControl_OS.ListaTareas[i];
-		if(tarea->ticks_bloqueada > 0)
+		if(tarea->estado == TAREA_BLOCKED && tarea->ticks_bloqueada > 0)  {
 			tarea->ticks_bloqueada--;
+
+			/*
+			 * Hacemos un checkeo de si la tarea apuntada con delay con bloqueo ya esta lista para
+			 * ser tenida en cuenta. si es asi, la pasamos a Ready
+			 */
+			if (tarea->ticks_bloqueada == 0)
+				tarea->estado = TAREA_READY;
+		}
 		i++;
 	}
 	cpu_yield();			//en resumidas cuentas, llamamos a PendSV
