@@ -1,11 +1,13 @@
 /*==================[inclusions]=============================================*/
 
 #include <stdint.h>
+#include <stdlib.h>
 #include "main.h"
 
 #include "g_OS_Core.h"
+#include "g_OS_API.h"
 #include "board.h"
-#include "Leds.h"
+#include "sapi.h"
 
 /*==================[macros and definitions]=================================*/
 
@@ -20,15 +22,10 @@ static void initHardware(void);
 
 /*==================[internal data definition]===============================*/
 
-static uint32_t pila1[STACK_SIZE];
-static uint32_t pila2[STACK_SIZE];
+task g_sTarea1, g_sTarea2, g_sTarea3;
 
 /*==================[external data definition]===============================*/
 
-uint32_t sp1;
-uint32_t sp2;
-
-uint32_t sistick_ms;
 
 
 /*==================[internal functions definition]==========================*/
@@ -42,40 +39,42 @@ static void initHardware(void)
 
 /*==================[external functions definition]==========================*/
 
-/*
-void SysTick_Handler(void)
-{
-}
-*/
 
-/**
- * TODO:	Agregar Push & Pop de registros restantes
- */
+
 
 void task1(void)  {
+	int i = 0;
 	while (1) {
-		if (sistick_ms % 1001 == 0)
-			led_set(LED_ROJO_1,true);
-		else
-			led_set(LED_ROJO_1,false);
+		i++;
+		gpioToggle(LED1);
+		osDelay((rand() % 700));
 	}
 }
 
 void task2(void)  {
+	int j = 0;
 	while (1) {
-		if (sistick_ms % 1500 == 0)
-			led_set(LED_AMARILLO_2,true);
-		else
-			led_set(LED_AMARILLO_2,false);
+		j++;
+		gpioToggle(LED2);
+		osDelay((rand() % 1300));
 	}
 }
 
-int main(void)
-{
+void task3(void)  {
+	int k = 0;
+	while (1) {
+		k++;
+		gpioToggle(LED3);
+		osDelay(rand() % 300);
+	}
+}
+
+int main(void)  {
 	initHardware();
 
-	init_task(task1, pila1, &sp1);
-	init_task(task2, pila2, &sp2);
+	init_task(task1, &g_sTarea1,1);
+	init_task(task2, &g_sTarea2,2);
+	init_task(task3, &g_sTarea3,1);
 
 	start_os();
 
