@@ -20,6 +20,6 @@ __WEAK__ void taskIdle(void);
 __WEAK__ void ErrorHook(void *Caller);
 
 //prototipos de funciones de la API
-void osDelay(uint32_t ticks);
+void os_Delay(uint32_t ticks);
 
 #endif /* G_OS_INC_G_OS_API_H_ */

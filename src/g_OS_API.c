@@ -35,7 +35,7 @@ __WEAK__ void ErrorHook(void *Caller)  {
 
 
 
-void osDelay(uint32_t ticks)  {
+void os_Delay(uint32_t ticks)  {
 
 	/*
 	 * Cargamos la cantidad de ticks a la tarea actual que se esta corriendo si la misma esta en running

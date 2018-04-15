@@ -47,7 +47,7 @@ void task1(void)  {
 	while (1) {
 		i++;
 		gpioToggle(LED1);
-		osDelay((rand() % 700));
+		os_Delay((rand() % 700));
 	}
 }
 
@@ -56,7 +56,7 @@ void task2(void)  {
 	while (1) {
 		j++;
 		gpioToggle(LED2);
-		osDelay((rand() % 1300));
+		//os_Delay((rand() % 1300));
 	}
 }
 
@@ -65,18 +65,20 @@ void task3(void)  {
 	while (1) {
 		k++;
 		gpioToggle(LED3);
-		osDelay(rand() % 300);
+		//os_Delay(rand() % 300);
 	}
 }
 
 int main(void)  {
 	initHardware();
 
-	init_task(task1, &g_sTarea1,1);
-	init_task(task2, &g_sTarea2,2);
-	init_task(task3, &g_sTarea3,1);
+	os_init_mem();
 
-	start_os();
+	os_init_task(task1, &g_sTarea1,PRIORIDAD_2);
+	os_init_task(task2, &g_sTarea2,PRIORIDAD_3);
+	os_init_task(task3, &g_sTarea3,PRIORIDAD_3);
+
+	os_start();
 
 	while (1) {
 	}
