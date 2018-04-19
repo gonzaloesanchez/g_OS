@@ -116,8 +116,8 @@ struct _osControl  {
 	task *spTarea_actual;				//definicion de puntero para tarea actual
 	task *spTarea_siguiente;			//definicion de puntero para tarea siguiente
 };
-
 typedef struct _osControl osControl;
+
 
 void os_init_task(void *tarea, task *tarea_struct, uint8_t prioridad);
 void os_start(void);
