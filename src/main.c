@@ -103,8 +103,6 @@ void botones(void)  {
 int main(void)  {
 	initHardware();
 
-	os_init_mem();
-
 	os_init_task(task1, &g_sTarea1,PRIORIDAD_2);
 	os_init_task(task2, &g_sTarea2,PRIORIDAD_2);
 	os_init_task(task3, &g_sTarea3,PRIORIDAD_2);

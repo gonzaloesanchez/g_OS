@@ -112,6 +112,7 @@ struct _osControl  {
 	int8_t Error;										//variable que contiene el ultimo error generado
 	bool bStartOS;										//esta bandera es para el comienzo de cambio de contexto
 	uint8_t cantidad_Tareas[CANT_PRIORIDADES];		//cantidad de tareas definidas por el usuario para cada prioridad
+	int16_t contador_critico;
 
 	task *spTarea_actual;				//definicion de puntero para tarea actual
 	task *spTarea_siguiente;			//definicion de puntero para tarea siguiente

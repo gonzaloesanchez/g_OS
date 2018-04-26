@@ -18,6 +18,30 @@ static uint8_t indice[CANT_PRIORIDADES];	//variable necesaria para lograr el rou
 uint32_t g_ui32Ticks = 0;				//contador global
 
 
+
+/********************************************************************************
+ * Init OS. Solamente sirve para asegurarnos de que la memoria RAM asociada a la
+ * estructura de control comience en 0. Es llamada por la primer init_task que se
+ * llama
+ *******************************************************************************/
+static void init_mem(void)  {
+	int i;
+	/*
+	 * Me aseguro de que toda la memoria asociada a las listas de tareas contenga NULL
+	 * antes de iniciar
+	 */
+	for(i=0;i<CANT_PRIORIDADES;i++)  {
+		memset(g_sControl_OS.ListaTareas[i],0,MAX_TASK_NUM * sizeof(void));		//cada lista de prioridad contiene todos NULL
+	}
+	memset(id,0,CANT_PRIORIDADES * sizeof(uint8_t));			//pongo a cero todos los ID
+	memset(indice,0,CANT_PRIORIDADES * sizeof(uint8_t));		//pongo a cero todos los indices
+	g_sControl_OS.contador_critico = 0;							//inicializo contador de entradas a secciones criticas
+}
+//-------------------------------------------------------------------------------
+
+
+
+
 /********************************************************************************
  * Init Task
  *******************************************************************************/
@@ -28,6 +52,23 @@ void os_init_task(void *tarea, task *tarea_struct, uint8_t prioridad)  {
 	 * del vector definido
 	 */
 	if(id[prioridad] < MAX_TASK_NUM-1)  {
+
+		/*
+		 * Preguntamos si es la primer llamada a init task, esto es, si no hay ningun otra tarea definida
+		 * y si es asi, inicializamos la memoria asociada a las estructuras del sistema operativo
+		 */
+		if (id[PRIORIDAD_0] == 0 &&
+			id[PRIORIDAD_1] == 0 &&
+			id[PRIORIDAD_2] == 0 &&
+			id[PRIORIDAD_3] == 0 &&
+			id[PRIORIDAD_4] == 0 &&
+			id[PRIORIDAD_5] == 0 &&
+			id[PRIORIDAD_6] == 0 &&
+			id[PRIORIDAD_7] == 0 )  {
+
+			init_mem();
+		}
+
 
 		memset(tarea_struct->pila,0,STACK_SIZE);		//El stack a cero!!!
 		/*
@@ -63,7 +104,7 @@ void os_init_task(void *tarea, task *tarea_struct, uint8_t prioridad)  {
 
 
 /********************************************************************************
- * Start OS
+ * Start OS.
  *******************************************************************************/
 void os_start()  {
 	uint8_t i;
@@ -269,25 +310,6 @@ uint32_t getNextContext(uint32_t sp_actual)  {
 }
 //-------------------------------------------------------------------------------
 
-/********************************************************************************
- * Init OS. Solamente sirve para asegurarnos de que la memoria RAM asociada a la
- * estructura de control comience en 0
- *******************************************************************************/
-void os_init_mem(void)  {
-	int i;
-	/*
-	 * Me aseguro de que toda la memoria asociada a las listas de tareas contenga NULL
-	 * antes de iniciar
-	 */
-	for(i=0;i<CANT_PRIORIDADES;i++)  {
-		memset(g_sControl_OS.ListaTareas[i],0,MAX_TASK_NUM * sizeof(void));		//cada lista de prioridad contiene todos NULL
-	}
-	memset(id,0,CANT_PRIORIDADES * sizeof(uint8_t));			//pongo a cero todos los ID
-	memset(indice,0,CANT_PRIORIDADES * sizeof(uint8_t));		//pongo a cero todos los indices
-}
-//-------------------------------------------------------------------------------
-
-
 void SysTick_Handler(void)  {
 	uint8_t prioridad,i;
 	task *tarea;
@@ -321,7 +343,9 @@ void SysTick_Handler(void)  {
 	cpu_yield();			//en resumidas cuentas, llamamos a PendSV
 }
 
-
+/********************************************************************************
+ * cpu_yield() llama a PendSV
+ *******************************************************************************/
 void cpu_yield(void)  {
 	SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
 
@@ -334,4 +358,27 @@ void cpu_yield(void)  {
 	 * completen todos los accesos a memoria
 	 */
 	__DSB();
+}
+
+
+
+/********************************************************************************
+ * Enter critical deshabilita las interrupciones e incrementa el contador de las
+ * veces que hemos llamado a la misma
+ *******************************************************************************/
+inline void os_enter_critical()  {
+	__disable_irq();
+	g_sControl_OS.contador_critico++;
+}
+
+
+/********************************************************************************
+ * exit critical habilita las interrupciones si el contador global de las
+ * solicitudes de secciones criticas llego a cero
+ *******************************************************************************/
+inline void os_exit_critical()  {
+	if (--g_sControl_OS.contador_critico <= 0)  {
+		g_sControl_OS.contador_critico = 0;
+		__enable_irq();
+	}
 }

@@ -45,7 +45,15 @@ void os_Delay(uint32_t ticks)  {
 	if (g_sControl_OS.spTarea_actual->estado == TAREA_RUNNING &&
 		ticks > 0)  {
 
+		os_enter_critical();
+
+		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		g_sControl_OS.spTarea_actual->ticks_bloqueada = ticks;		//cantidad de ticks a bloquearse
+		g_sControl_OS.spTarea_actual->estado = TAREA_BLOCKED;
+		//------------------------------------------------------------------------------------------
+
+		os_exit_critical();
+
 
 		/*
 		 * Si la tarea fue puesta en ready por otro evento, debemos volverla a bloquear, porque
@@ -54,7 +62,7 @@ void os_Delay(uint32_t ticks)  {
 
 		while (g_sControl_OS.spTarea_actual->ticks_bloqueada > 0)  {
 			g_sControl_OS.spTarea_actual->estado = TAREA_BLOCKED;
-			cpu_yield();							//ya no necesito la CPU hasta que el delay se termine
+			cpu_yield();              //ya no necesito la CPU hasta que el delay se termine
 		}
 	}
 }
@@ -83,7 +91,6 @@ void os_Semaforo_take(osSemaforo* X)  {
 	bool Salir = false;
 
 	if (g_sControl_OS.spTarea_actual->estado == TAREA_RUNNING)  {
-
 		/*
 		 * Esto lo puse dentro de un while porque la tarea puede desbloquearse por otro
 		 * evento, pero debe volver a bloquearse si no fue el semaforo quien la desbloqueo
@@ -91,9 +98,15 @@ void os_Semaforo_take(osSemaforo* X)  {
 		while (!Salir)  {
 
 			if(X->tomado)  {
+				os_enter_critical();
+
+				//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 				g_sControl_OS.spTarea_actual->estado = TAREA_BLOCKED;		//estado de la tarea actual
 				X->tarea_asociada = g_sControl_OS.spTarea_actual;			//guardamos la tarea que bloqueamos
-				cpu_yield();												//devolvemos el CPU
+				//----------------------------------------------------------------------------------------------------
+
+				os_exit_critical();
+				cpu_yield();			//devolvemos el CPU
 			}
 			else  {
 				X->tomado = true;
@@ -102,6 +115,7 @@ void os_Semaforo_take(osSemaforo* X)  {
 		}
 	}
 }
+
 
 
 //-------------------------------------------------------------------------------
