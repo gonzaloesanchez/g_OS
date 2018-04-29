@@ -26,10 +26,25 @@
 #define AUTO_STACKING_SIZE	8	// registros que hacen stacking automatico, sin contar Floating point registers
 #define FULL_STACKING_SIZE	17	//Todos los regstros excepto FPunit
 #define TASK_NAME_SIZE		10
-#define MAX_TASK_NUM		32	//cantidad maxima de tareas a definir. Esto es 31 tareas de usuario + Idle
+#define MAX_TASK_NUM		8	//cantidad maxima de tareas a definir. Esto es 8 tareas por prioridad
+								//En la prioridad mas baja tendremos una tarea menos, porque alli va IDLE
+
+//definiciones de prioridades. Por ahora, no habra mas de 8 prioridades
+#define CANT_PRIORIDADES	9
+#define PRIORIDAD_0			0	//prioridad maxima, siguiendo la logica de la prioridad de interrupciones del core
+#define PRIORIDAD_1			1
+#define PRIORIDAD_2			2
+#define PRIORIDAD_3			3
+#define PRIORIDAD_4			4
+#define PRIORIDAD_5			5
+#define PRIORIDAD_6			6
+#define PRIORIDAD_7			7	//prioridad minima
+#define PRIORIDAD_IDLE		8	//esta prioridad no es visible al usuario, es donde va IDLE
+
 
 //definiciones de codigos de error
 #define ERR_OS_CANT_TAREAS		-1
+#define ERR_PRIORITY_OVERFLOW	-100
 
 //posiciones de registros de automatic stacking
 #define PSR		1
@@ -56,7 +71,17 @@
 #define INIT_xPSR 	1 << 24
 #define EXEC_RETURN	0xFFFFFFF9
 
-#define __WEAK__   __attribute__((weak))
+#define __WEAK__	__attribute__((weak))
+#define __NOP()		__asm volatile( "nop" );
+
+
+
+//prototipos de funciones que el usuario puede redefinir
+//__WEAK__ void ReturnHook(void);
+//__WEAK__ void TickHook(void);
+//__WEAK__ void taskIdle(void);
+//__WEAK__ void ErrorHook(void *Caller);
+
 
 /********************************************************************************
  * Definicion de los estados posibles para las tareas
@@ -71,6 +96,18 @@ enum _estadoTarea  {
 };
 
 typedef enum _estadoTarea estadoTarea;
+
+
+/********************************************************************************
+ * Definicion de los estados posibles de nuestro OS
+ *******************************************************************************/
+
+enum _estadoOS  {
+	OS_IRQ,
+	OS_NORMAL_RUN
+};
+
+typedef enum _estadoOS estadoOS;
 
 
 /********************************************************************************
@@ -93,21 +130,28 @@ typedef struct _task task;
  * Definicion de la estructura de control para el sistema operativo
  *******************************************************************************/
 struct _osControl  {
-	void *ListaTareas[MAX_TASK_NUM];		//array de punteros a tareas
-	int8_t Error;						//variable que contiene el ultimo error generado
-	bool bStartOS;					//esta bandera es para el comienzo de cambio de contexto
-	uint8_t cantidad_Tareas;		//cantidad de tareas definidas por el usuario + tarea idle
+	void *ListaTareas[CANT_PRIORIDADES][MAX_TASK_NUM];	//array de punteros a tareas
+	int8_t Error;										//variable que contiene el ultimo error generado
+	bool bStartOS;										//esta bandera es para el comienzo de cambio de contexto
+	uint8_t cantidad_Tareas[CANT_PRIORIDADES];		//cantidad de tareas definidas por el usuario para cada prioridad
+	int16_t contador_critico;
+	estadoOS estado_sistema;
+	bool llamar_scheduler;							//llamar al scheduler al salir de IRQ o no
 
 	task *spTarea_actual;				//definicion de puntero para tarea actual
 	task *spTarea_siguiente;			//definicion de puntero para tarea siguiente
 };
-
 typedef struct _osControl osControl;
 
-void init_task(void *tarea, task *tarea_struct, uint8_t prioridad);
-void start_os();
+
+void os_init_task(void *tarea, task *tarea_struct, uint8_t prioridad);
+void os_start(void);
+void os_init_mem(void);
 void cpu_yield(void);
 void ReturnHook(void);
+
+inline void os_enter_critical();
+inline void os_exit_critical();
 
 
 #endif /* SIST_OPERATIVOS1_G_OS_INC_STUBS_H_ */

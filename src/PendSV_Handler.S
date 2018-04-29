@@ -19,6 +19,10 @@
 
 PendSV_Handler:
 
+// !!!!!!!!!!!!!!!!!! seccion critica !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+	cpsid i				//disable interrupts (Es como si fuera el GIE)
+
 //FPU Context
 	tst lr,0x10			//bit 4 del EXEC_RETURN es cero?
 	it eq
@@ -33,6 +37,9 @@ PendSV_Handler:
 	tst lr,0x10			//bit 4 del EXEC_RETURN es cero?
 	it eq
 	vpopeq {s16-s31}	//hacemos POP de los registros
+
+// ------------------ Fin de la seccion critica -----------------------------------------
+	cpsie i				//enable interrupts (Como si fuera el GIE)
 
 	bx lr				//carga en PC el valor de EXEC_RETURN para que se vuelva donde apunta MSP
 						//(en este caso. Es segun este armada la pila)
