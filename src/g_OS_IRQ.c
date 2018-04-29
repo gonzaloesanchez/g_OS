@@ -91,6 +91,14 @@ static void os_irq_handler(LPC43XX_IRQn_Type IRQn)  {
 	 */
 	g_sControl_OS.estado_sistema = estadoPrevio_OS;
 
+
+	/*
+	 * Debemos limpiar la interrupcion que acabamos de atender, sino se entra por siempre
+	 * a la funcion de interrupcion
+	 */
+	NVIC_ClearPendingIRQ(IRQn);
+
+
 	/*
 	 * Si hubo alguna llamada desde una interrupcion a una api liberando un evento, entonces
 	 * llamamos al scheduler

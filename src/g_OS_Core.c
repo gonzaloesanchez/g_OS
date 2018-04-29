@@ -18,6 +18,38 @@ static uint8_t indice[CANT_PRIORIDADES];	//variable necesaria para lograr el rou
 
 
 
+
+/********************************************************************************
+ * Definiciones de funciones que el usuario puede redefinir en su codigo
+ * Esta porcion de codigo no debe ser poblada aqui, sino redefinida en otro
+ * archivo
+ *******************************************************************************/
+
+void __WEAK__ ReturnHook(void)  {
+	while(1);
+}
+
+void __WEAK__ TickHook(void)  {
+	__NOP();
+}
+
+void __WEAK__ taskIdle(void)  {
+	while(1)  {
+		__WFI();
+	}
+}
+
+void __WEAK__ ErrorHook(void *Caller)  {
+	/*
+	 * Revisar el contenido de g_Error para obtener informacion!!
+	 */
+	while(1);
+}
+
+
+
+
+
 /********************************************************************************
  * Init OS. Solamente sirve para asegurarnos de que la memoria RAM asociada a la
  * estructura de control comience en 0. Es llamada por la primer init_task que se
@@ -348,35 +380,4 @@ inline void os_exit_critical()  {
 		g_sControl_OS.contador_critico = 0;
 		__enable_irq();
 	}
-}
-
-
-
-
-
-/********************************************************************************
- * Definiciones de funciones que el usuario puede redefinir en su codigo
- * Esta porcion de codigo no debe ser poblada aqui, sino redefinida en otro
- * archivo
- *******************************************************************************/
-
-__WEAK__ void ReturnHook(void)  {
-	while(1);
-}
-
-__WEAK__ void TickHook(void)  {
-	__NOP();
-}
-
-__WEAK__ void taskIdle(void)  {
-	while(1)  {
-		__WFI();
-	}
-}
-
-__WEAK__ void ErrorHook(void *Caller)  {
-	/*
-	 * Revisar el contenido de g_Error para obtener informacion!!
-	 */
-	while(1);
 }

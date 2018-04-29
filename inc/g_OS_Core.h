@@ -77,10 +77,10 @@
 
 
 //prototipos de funciones que el usuario puede redefinir
-__WEAK__ void ReturnHook(void);
-__WEAK__ void TickHook(void);
-__WEAK__ void taskIdle(void);
-__WEAK__ void ErrorHook(void *Caller);
+//__WEAK__ void ReturnHook(void);
+//__WEAK__ void TickHook(void);
+//__WEAK__ void taskIdle(void);
+//__WEAK__ void ErrorHook(void *Caller);
 
 
 /********************************************************************************
