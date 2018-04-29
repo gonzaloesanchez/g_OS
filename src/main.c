@@ -71,7 +71,7 @@ static void initHardware(void)
 	/*
 	 * Seteamos la interrupcion 1 para el flanco ascendente en la tecla 1
 	 */
-	Chip_SCU_GPIOIntPinSel( 2, TEC1_PORT_NUM, TEC1_BIT_VAL );
+	Chip_SCU_GPIOIntPinSel( 1, TEC1_PORT_NUM, TEC1_BIT_VAL );
 	Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH( 1 ) ); // INT1 flanc
 	Chip_PININT_SetPinModeEdge( LPC_GPIO_PIN_INT, PININTCH( 1 ) );
 	Chip_PININT_EnableIntHigh( LPC_GPIO_PIN_INT, PININTCH( 1 ) );
@@ -79,10 +79,10 @@ static void initHardware(void)
 	/*
 	 * Seteamos la interrupcion 2 para el flanco descendente en la tecla 2
 	 */
-	Chip_SCU_GPIOIntPinSel( 1, TEC2_PORT_NUM, TEC2_BIT_VAL );
-	Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH( 1 ) ); // INT2
-	Chip_PININT_SetPinModeEdge( LPC_GPIO_PIN_INT, PININTCH( 1 ) );
-	Chip_PININT_EnableIntLow( LPC_GPIO_PIN_INT, PININTCH( 1 ) );
+	Chip_SCU_GPIOIntPinSel( 2, TEC2_PORT_NUM, TEC2_BIT_VAL );
+	Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH( 2 ) ); // INT2
+	Chip_PININT_SetPinModeEdge( LPC_GPIO_PIN_INT, PININTCH( 2 ) );
+	Chip_PININT_EnableIntLow( LPC_GPIO_PIN_INT, PININTCH( 2 ) );
 
 	/*
 	 * Seteamos la interrupcion 3 para el flanco ascendente en la tecla 2
@@ -125,31 +125,48 @@ void tecla1(void)  {
 
 		gpioWrite(LED1,true);
 		os_Delay(Contador_interno);
+		gpioWrite(LED1,false);
 	}
 }
 
-/*
+
 void tecla2(void)  {
-	int j = 0;
+	uint32_t Contador_interno;
 
 	while (1) {
-		j++;
+		/*
+		 * Debemos esperar al evento en que la tecla se presiona
+		 */
+		os_Semaforo_take(&sem_Tecla2_Down);
 
-		if (j%9 == 0)
-			os_Semaforo_take(&semLed2);
-		gpioToggle(LED2);
-		os_Delay((rand() % 1300));
+		/*
+		 * Una vez presionada la tecla, reseteamos el contador te ticks. Este se
+		 * incrementara en el tickhook (una vez por milisegundo)
+		 */
+		Contador_tecla2 = 0;
+
+		/*
+		 * Debemos entonces esperar a que se suelte la tecla
+		 */
+		os_Semaforo_take(&sem_Tecla2_Up);
+
+		/*
+		 * Una vez soltada la tecla, tomamos el valor del contador.
+		 */
+		Contador_interno = Contador_tecla2;
+
+		gpioWrite(LED2,true);
+		os_Delay(Contador_interno);
+		gpioWrite(LED2,false);
 	}
 }
-
-*/
 
 
 int main(void)  {
 	initHardware();
 
 	os_init_task(tecla1, &g_sTarea_Tecla1,PRIORIDAD_0);
-	//os_init_task(tecla2, &g_sTarea_Tecla2,PRIORIDAD_0);
+	os_init_task(tecla2, &g_sTarea_Tecla2,PRIORIDAD_0);
 
 	os_Semaforo_init(&sem_Tecla1_Down);
 	os_Semaforo_init(&sem_Tecla1_Up);
@@ -178,18 +195,22 @@ void TickHook(void)  {
 
 void tecla1_down_IRQ(void) {
 	os_Semaforo_give(&sem_Tecla1_Down);
+	Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH( 0 ) );
 }
 
 void tecla1_up_IRQ(void)  {
 	os_Semaforo_give(&sem_Tecla1_Up);
+	Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH( 1 ) );
 }
 
 void tecla2_down_IRQ(void) {
-
+	os_Semaforo_give(&sem_Tecla2_Down);
+	Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH( 2 ) );
 }
 
 void tecla2_up_IRQ(void)  {
-
+	os_Semaforo_give(&sem_Tecla2_Up);
+	Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH( 3 ) );
 }
 
 /** @} doxygen end group definition */
