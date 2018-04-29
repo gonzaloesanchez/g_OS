@@ -15,7 +15,6 @@ osControl g_sControl_OS;
 static task g_sIdleTask;					//definicion de contexto para tarea IDLE
 static uint8_t id[CANT_PRIORIDADES];		//esta variable me ayuda a seguir el track de IDs
 static uint8_t indice[CANT_PRIORIDADES];	//variable necesaria para lograr el round robin
-uint32_t g_ui32Ticks = 0;				//contador global
 
 
 
@@ -45,7 +44,7 @@ static void init_mem(void)  {
 /********************************************************************************
  * Init Task
  *******************************************************************************/
-void os_init_task(void *tarea, task *tarea_struct, uint8_t prioridad)  {
+void os_init_task(void *tarea, task *tarea_struct ,uint8_t prioridad)  {
 
 	/*
 	 * Se hace una especie de ASSERT donde determinamos que la cantidad de tareas no exceda la longitud
@@ -107,7 +106,6 @@ void os_init_task(void *tarea, task *tarea_struct, uint8_t prioridad)  {
  * Start OS.
  *******************************************************************************/
 void os_start()  {
-	uint8_t i;
 	/*
 	 * Todas las interrupciones tienen prioridad 0 (la maxima)
 	 * al iniciar la ejecucion. Para que PendSV no interrumpa a Systick
@@ -132,6 +130,7 @@ void os_start()  {
 	g_sControl_OS.bStartOS = true;
 	g_sControl_OS.spTarea_actual = NULL;			//solamente el scheduler determina
 	g_sControl_OS.spTarea_siguiente = NULL;			//que tarea inicia y cual le sigue
+	g_sControl_OS.estado_sistema = OS_NORMAL_RUN;	//comenzamos nuestro sistema en modo normal (tarea)
 }
 //-------------------------------------------------------------------------------
 
@@ -310,38 +309,6 @@ uint32_t getNextContext(uint32_t sp_actual)  {
 }
 //-------------------------------------------------------------------------------
 
-void SysTick_Handler(void)  {
-	uint8_t prioridad,i;
-	task *tarea;
-
-	/*
-	 * Systick justamente es el que se encarga de ver todos los temporizadores
-	 * por lo que recorremos todas las tareas que esten definidas y si tienen un
-	 * valor de ticks de bloqueo mayor a cero, lo decrementamos.
-	 *
-	 */
-	for (prioridad=0;prioridad<CANT_PRIORIDADES;prioridad++)  {
-		if (g_sControl_OS.cantidad_Tareas[prioridad] > 0)  {
-			/*
-			 * Si existen tareas en esta lista de prioridad, las recorremos todas
-			 */
-			for(i=0;i<g_sControl_OS.cantidad_Tareas[prioridad];i++)  {
-				tarea = (task *) g_sControl_OS.ListaTareas[prioridad][i];
-				if(tarea->estado == TAREA_BLOCKED && tarea->ticks_bloqueada > 0)  {
-					tarea->ticks_bloqueada--;
-
-					/*
-					 * Hacemos un checkeo de si la tarea apuntada con delay con bloqueo ya esta lista para
-					 * ser tenida en cuenta. si es asi, la pasamos a Ready
-					 */
-					if (tarea->ticks_bloqueada == 0)
-						tarea->estado = TAREA_READY;
-				}
-			}
-		}
-	}
-	cpu_yield();			//en resumidas cuentas, llamamos a PendSV
-}
 
 /********************************************************************************
  * cpu_yield() llama a PendSV
@@ -381,4 +348,35 @@ inline void os_exit_critical()  {
 		g_sControl_OS.contador_critico = 0;
 		__enable_irq();
 	}
+}
+
+
+
+
+
+/********************************************************************************
+ * Definiciones de funciones que el usuario puede redefinir en su codigo
+ * Esta porcion de codigo no debe ser poblada aqui, sino redefinida en otro
+ * archivo
+ *******************************************************************************/
+
+__WEAK__ void ReturnHook(void)  {
+	while(1);
+}
+
+__WEAK__ void TickHook(void)  {
+	__NOP();
+}
+
+__WEAK__ void taskIdle(void)  {
+	while(1)  {
+		__WFI();
+	}
+}
+
+__WEAK__ void ErrorHook(void *Caller)  {
+	/*
+	 * Revisar el contenido de g_Error para obtener informacion!!
+	 */
+	while(1);
 }

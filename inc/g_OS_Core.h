@@ -71,7 +71,17 @@
 #define INIT_xPSR 	1 << 24
 #define EXEC_RETURN	0xFFFFFFF9
 
-#define __WEAK__   __attribute__((weak))
+#define __WEAK__	__attribute__((weak))
+#define __NOP()		__asm volatile( "nop" );
+
+
+
+//prototipos de funciones que el usuario puede redefinir
+__WEAK__ void ReturnHook(void);
+__WEAK__ void TickHook(void);
+__WEAK__ void taskIdle(void);
+__WEAK__ void ErrorHook(void *Caller);
+
 
 /********************************************************************************
  * Definicion de los estados posibles para las tareas
@@ -86,6 +96,18 @@ enum _estadoTarea  {
 };
 
 typedef enum _estadoTarea estadoTarea;
+
+
+/********************************************************************************
+ * Definicion de los estados posibles de nuestro OS
+ *******************************************************************************/
+
+enum _estadoOS  {
+	OS_IRQ,
+	OS_NORMAL_RUN
+};
+
+typedef enum _estadoOS estadoOS;
 
 
 /********************************************************************************
@@ -113,6 +135,8 @@ struct _osControl  {
 	bool bStartOS;										//esta bandera es para el comienzo de cambio de contexto
 	uint8_t cantidad_Tareas[CANT_PRIORIDADES];		//cantidad de tareas definidas por el usuario para cada prioridad
 	int16_t contador_critico;
+	estadoOS estado_sistema;
+	bool llamar_scheduler;							//llamar al scheduler al salir de IRQ o no
 
 	task *spTarea_actual;				//definicion de puntero para tarea actual
 	task *spTarea_siguiente;			//definicion de puntero para tarea siguiente
@@ -125,6 +149,9 @@ void os_start(void);
 void os_init_mem(void);
 void cpu_yield(void);
 void ReturnHook(void);
+
+inline void os_enter_critical();
+inline void os_exit_critical();
 
 
 #endif /* SIST_OPERATIVOS1_G_OS_INC_STUBS_H_ */

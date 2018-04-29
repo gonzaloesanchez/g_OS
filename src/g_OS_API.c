@@ -8,28 +8,6 @@
 
 #include "g_OS_API.h"
 
-
-/********************************************************************************
- * Definiciones de funciones que el usuario puede poblar con codigo
- *******************************************************************************/
-
-__WEAK__ void ReturnHook(void)  {
-	while(1);
-}
-
-__WEAK__ void taskIdle(void)  {
-	while(1)  {
-		__WFI();
-	}
-}
-
-__WEAK__ void ErrorHook(void *Caller)  {
-	/*
-	 * Revisar el contenido de g_Error para obtener informacion!!
-	 */
-	while(1);
-}
-
 //-------------------------------------------------------------------------------
 
 
@@ -130,6 +108,13 @@ void os_Semaforo_give(osSemaforo* X)  {
 
 		X->tomado = false;
 		X->tarea_asociada->estado = TAREA_READY;		//liberamos la tarea que habiamos bloqueado
+
+		/*
+		 * Si semaforo give se llama desde una interrupcion, debemos entonces
+		 * avisar que es necesario llamar al scheduler
+		 */
+		if (g_sControl_OS.estado_sistema == OS_IRQ)
+			g_sControl_OS.llamar_scheduler = true;
 	}
 }
 

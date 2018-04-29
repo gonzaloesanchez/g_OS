@@ -29,15 +29,11 @@ typedef struct _semaforo osSemaforo;
 
 
 
-//prototipos de funciones que el usuario puede poblar
-__WEAK__ void ReturnHook(void);
-__WEAK__ void taskIdle(void);
-__WEAK__ void ErrorHook(void *Caller);
-
 //prototipos de funciones de la API
 void os_Delay(uint32_t ticks);
 void os_Semaforo_init(osSemaforo* X);
 void os_Semaforo_take(osSemaforo* X);
 void os_Semaforo_give(osSemaforo* X);
+
 
 #endif /* G_OS_INC_G_OS_API_H_ */
