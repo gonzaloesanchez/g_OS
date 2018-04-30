@@ -296,12 +296,6 @@ uint32_t getNextContext(uint32_t sp_actual)  {
 	 */
 	scheduler();
 
-	/**
-	 * TODO:
-	 * 		1) La tarea actual debe ponerse en READY (done)
-	 * 		2) La tarea siguiente en RUNNING (done)
-	 */
-
 	/*
 	 * Como el Scheduler funciona bien y la primera vez que es llamado toma la primer tarea de mayor prioridad,
 	 * controlo si el sistema operativo acaba de comenzar y si es asi, piso el puntero de mi tarea actual

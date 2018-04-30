@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include "main.h"
 
 #include "g_OS_Core.h"
@@ -56,12 +57,15 @@ void tecla2_up_IRQ(void);
 /*==================[internal data definition]===============================*/
 
 task g_sTarea_Led1_AB,g_sTarea_Led1_BA;
-task g_sTarea_Led2_AB,g_sTarea_Led2_BA;
-task g_sTarea_ME;
+task g_sTarea_Led2_CD,g_sTarea_Led2_DC;
+task g_sTarea_ME, g_sTareaUART;
 
 osSemaforo sem_Medicion1_AB,sem_Medicion1_BA;
 osSemaforo sem_Medicion2_CD, sem_Medicion2_DC;
-osSemaforo sem_ActualizarME;
+osSemaforo sem_ActualizarME, sem_UART;
+
+char g_cSecuenciaBotones[3];
+char g_cTiempo[15];
 
 bool g_bTecla1 = 0;
 bool g_bTecla2 = 0;
@@ -110,6 +114,9 @@ static void initHardware(void)
 	Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH( 3 ) ); // INT3
 	Chip_PININT_SetPinModeEdge( LPC_GPIO_PIN_INT, PININTCH( 3 ) );
 	Chip_PININT_EnableIntHigh( LPC_GPIO_PIN_INT, PININTCH( 3 ) );
+
+	/* Inicializar UART_USB a 115200 baudios */
+	uartConfig( UART_USB, 115200 );
 }
 
 /*==================[external functions definition]==========================*/
@@ -130,13 +137,22 @@ void Led1_AB(void)  {
 		/*
 		 * Una vez que ocurre la medicion correcta, tomamos el valor del contador de
 		 * ticks correspondiente. Este caso corresponde a {0:1:ticks}\r\n
+		 * Hacemos entonces una seccion critica porque todas las tareas estan
+		 * compartiendo el mismo buffer de envio de char a la uart
 		 */
+		os_enter_critical();
 
-		gpioWrite(LEDG,true);
+		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		strcpy(g_cSecuenciaBotones,"0:1");
+		itoa(medicion1,g_cTiempo,10);
+		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+		os_exit_critical();
+		os_Semaforo_give(&sem_UART);
+
 		gpioWrite(LED1,true);
 		os_Delay(medicion1);
 		gpioWrite(LED1,false);
-		gpioWrite(LEDG,false);
 	}
 }
 
@@ -150,19 +166,28 @@ void Led1_BA(void)  {
 
 		/*
 		 * Una vez que ocurre la medicion correcta, tomamos el valor del contador de
-		 * ticks correspondiente. Este caso corresponde a {0:1:ticks}\r\n
+		 * ticks correspondiente. Este caso corresponde a {1:0:ticks}\r\n
+		 * Hacemos entonces una seccion critica porque todas las tareas estan
+		 * compartiendo el mismo buffer de envio de char a la uart
 		 */
+		os_enter_critical();
 
-		gpioWrite(LEDB,true);
+		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		strcpy(g_cSecuenciaBotones,"1:0");
+		itoa(medicion1,g_cTiempo,10);
+		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+		os_exit_critical();
+		os_Semaforo_give(&sem_UART);
+
 		gpioWrite(LED1,true);
 		os_Delay(medicion1);
 		gpioWrite(LED1,false);
-		gpioWrite(LEDB,false);
 	}
 }
 
 
-void Led2_AB(void)  {
+void Led2_CD(void)  {
 
 	while (1) {
 		/*
@@ -172,18 +197,27 @@ void Led2_AB(void)  {
 
 		/*
 		 * Una vez que ocurre la medicion correcta, tomamos el valor del contador de
-		 * ticks correspondiente. Este caso corresponde a {0:1:ticks}\r\n
+		 * ticks correspondiente. Este caso corresponde a {1:0:ticks}\r\n
+		 * Hacemos entonces una seccion critica porque todas las tareas estan
+		 * compartiendo el mismo buffer de envio de char a la uart
 		 */
+		os_enter_critical();
 
-		gpioWrite(LEDG,true);
+		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		strcpy(g_cSecuenciaBotones,"1:0");
+		itoa(medicion2,g_cTiempo,10);
+		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+		os_exit_critical();
+		os_Semaforo_give(&sem_UART);
+
 		gpioWrite(LED2,true);
 		os_Delay(medicion2);
 		gpioWrite(LED2,false);
-		gpioWrite(LEDG,false);
 	}
 }
 
-void Led2_BA(void)  {
+void Led2_DC(void)  {
 
 	while (1) {
 		/*
@@ -193,16 +227,70 @@ void Led2_BA(void)  {
 
 		/*
 		 * Una vez que ocurre la medicion correcta, tomamos el valor del contador de
-		 * ticks correspondiente. Este caso corresponde a {0:1:ticks}\r\n
+		 * ticks correspondiente. Este caso corresponde a {1:0:ticks}\r\n
+		 * Hacemos entonces una seccion critica porque todas las tareas estan
+		 * compartiendo el mismo buffer de envio de char a la uart
 		 */
+		os_enter_critical();
 
-		gpioWrite(LEDB,true);
+		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		strcpy(g_cSecuenciaBotones,"0:1");
+		itoa(medicion2,g_cTiempo,10);
+		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+		os_exit_critical();
+		os_Semaforo_give(&sem_UART);
+
 		gpioWrite(LED2,true);
 		os_Delay(medicion2);
 		gpioWrite(LED2,false);
-		gpioWrite(LEDB,false);
 	}
 }
+
+
+
+void uart(void)  {
+	char buffer[20];
+	char endstring[] = "\r\n";
+
+	while (1) {
+
+		/*
+		 * Esperamos al semaforo que libera alguna tarea cuando se realizo una medicion
+		 * correcta
+		 */
+		os_Semaforo_take(&sem_UART);
+
+		/*
+		 * la seccion siguiente es critica porque estamos leyendo un buffer que esta
+		 * accedido por todas las tareas, necesito sacar estos datos y despues atender
+		 * el siguiente evento
+		 */
+		os_enter_critical();
+
+		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		strcpy(buffer,"{");
+		strcat(buffer,g_cSecuenciaBotones);
+		strcat(buffer,":");
+		strcat(buffer,g_cTiempo);
+		strcat(buffer,"}");
+		strcat(buffer,endstring);
+		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+		os_exit_critical();
+
+		/*
+		 * Esta seccion deja de ser critica porque buffer ya no se modifica, dado
+		 * que es una variable local de esta tarea, asi que cuando termine de enviar
+		 * esperaremos el evento siguiente
+		 */
+		uartWriteString( UART_USB, buffer ); /* Envía "Hola de nuevo\r\n" */
+
+	}
+}
+
+
+
 
 
 void MaquinaEstados(void)  {
@@ -392,15 +480,18 @@ int main(void)  {
 
 	os_init_task(Led1_AB, &g_sTarea_Led1_AB,PRIORIDAD_1);
 	os_init_task(Led1_BA, &g_sTarea_Led1_BA,PRIORIDAD_1);
-	os_init_task(Led2_AB, &g_sTarea_Led2_AB,PRIORIDAD_1);
-	os_init_task(Led2_BA, &g_sTarea_Led2_BA,PRIORIDAD_1);
+	os_init_task(Led2_CD, &g_sTarea_Led2_CD,PRIORIDAD_1);
+	os_init_task(Led2_DC, &g_sTarea_Led2_DC,PRIORIDAD_1);
 	os_init_task(MaquinaEstados, &g_sTarea_ME,PRIORIDAD_0);
+
+	os_init_task(uart, &g_sTareaUART,PRIORIDAD_2);
 
 	os_Semaforo_init(&sem_Medicion1_AB);
 	os_Semaforo_init(&sem_Medicion1_BA);
 	os_Semaforo_init(&sem_Medicion2_CD);
 	os_Semaforo_init(&sem_Medicion2_DC);
 	os_Semaforo_init(&sem_ActualizarME);
+	os_Semaforo_init(&sem_UART);
 
 	os_install_IRQ(PIN_INT0_IRQn,tecla1_down_IRQ);
 	os_install_IRQ(PIN_INT1_IRQn,tecla1_up_IRQ);
