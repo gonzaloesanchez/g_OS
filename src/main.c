@@ -28,6 +28,9 @@
 
 uint32_t contador_ticks = 0;		//contador de ticks global definido por el usuario
 
+uint32_t medicion1 = 0;				//tiempo de la medicion 1
+uint32_t medicion2 = 0;				//tiempo de la medicion 2
+
 enum _Botones {T1_1_T2_1,
 				T1_0_T2_1_FW,
 				T1_0_T2_1_BK,
@@ -52,8 +55,12 @@ void tecla2_up_IRQ(void);
 
 /*==================[internal data definition]===============================*/
 
-task g_sTarea_Led1, g_sTarea_Led2, g_sTarea_ME;
-osSemaforo sem_Tecla1_Down, sem_Tecla1_Up, sem_Tecla2_Down, sem_Tecla2_Up;
+task g_sTarea_Led1_AB,g_sTarea_Led1_BA;
+task g_sTarea_Led2_AB,g_sTarea_Led2_BA;
+task g_sTarea_ME;
+
+osSemaforo sem_Medicion1_AB,sem_Medicion1_BA;
+osSemaforo sem_Medicion2_CD, sem_Medicion2_DC;
 osSemaforo sem_ActualizarME;
 
 bool g_bTecla1 = 0;
@@ -112,66 +119,88 @@ static void initHardware(void)
  * 							SECCION DE TAREAS
  ****************************************************************************/
 
-void Led1(void)  {
-	uint32_t Contador_interno;
+void Led1_AB(void)  {
 	while (1) {
 
 		/*
-		 * Debemos esperar al evento en que la tecla se presiona
+		 * Debemos esperar al evento en que la medicion es correcta
 		 */
-		os_Semaforo_take(&sem_Tecla1_Down);
+		os_Semaforo_take(&sem_Medicion1_AB);
 
 		/*
-		 * Una vez presionada la tecla, reseteamos el contador te ticks. Este se
-		 * incrementara en el tickhook (una vez por milisegundo)
+		 * Una vez que ocurre la medicion correcta, tomamos el valor del contador de
+		 * ticks correspondiente. Este caso corresponde a {0:1:ticks}\r\n
 		 */
-		//Contador_tecla1 = 0;
 
-		/*
-		 * Debemos entonces esperar a que se suelte la tecla
-		 */
-		os_Semaforo_take(&sem_Tecla1_Up);
-
-		/*
-		 * Una vez soltada la tecla, tomamos el valor del contador.
-		 */
-		//Contador_interno = Contador_tecla1;
-
+		gpioWrite(LEDG,true);
 		gpioWrite(LED1,true);
-		os_Delay(Contador_interno);
+		os_Delay(medicion1);
 		gpioWrite(LED1,false);
+		gpioWrite(LEDG,false);
+	}
+}
+
+void Led1_BA(void)  {
+	while (1) {
+
+		/*
+		 * Debemos esperar al evento en que la medicion es correcta
+		 */
+		os_Semaforo_take(&sem_Medicion1_BA);
+
+		/*
+		 * Una vez que ocurre la medicion correcta, tomamos el valor del contador de
+		 * ticks correspondiente. Este caso corresponde a {0:1:ticks}\r\n
+		 */
+
+		gpioWrite(LEDB,true);
+		gpioWrite(LED1,true);
+		os_Delay(medicion1);
+		gpioWrite(LED1,false);
+		gpioWrite(LEDB,false);
 	}
 }
 
 
-void Led2(void)  {
-	uint32_t Contador_interno;
+void Led2_AB(void)  {
 
 	while (1) {
 		/*
 		 * Debemos esperar al evento en que la tecla se presiona
 		 */
-		os_Semaforo_take(&sem_Tecla2_Down);
+		os_Semaforo_take(&sem_Medicion2_CD);
 
 		/*
-		 * Una vez presionada la tecla, reseteamos el contador te ticks. Este se
-		 * incrementara en el tickhook (una vez por milisegundo)
+		 * Una vez que ocurre la medicion correcta, tomamos el valor del contador de
+		 * ticks correspondiente. Este caso corresponde a {0:1:ticks}\r\n
 		 */
-		//Contador_tecla2 = 0;
 
-		/*
-		 * Debemos entonces esperar a que se suelte la tecla
-		 */
-		os_Semaforo_take(&sem_Tecla2_Up);
-
-		/*
-		 * Una vez soltada la tecla, tomamos el valor del contador.
-		 */
-		//Contador_interno = Contador_tecla2;
-
+		gpioWrite(LEDG,true);
 		gpioWrite(LED2,true);
-		os_Delay(Contador_interno);
+		os_Delay(medicion2);
 		gpioWrite(LED2,false);
+		gpioWrite(LEDG,false);
+	}
+}
+
+void Led2_BA(void)  {
+
+	while (1) {
+		/*
+		 * Debemos esperar al evento en que la tecla se presiona
+		 */
+		os_Semaforo_take(&sem_Medicion2_DC);
+
+		/*
+		 * Una vez que ocurre la medicion correcta, tomamos el valor del contador de
+		 * ticks correspondiente. Este caso corresponde a {0:1:ticks}\r\n
+		 */
+
+		gpioWrite(LEDB,true);
+		gpioWrite(LED2,true);
+		os_Delay(medicion2);
+		gpioWrite(LED2,false);
+		gpioWrite(LEDB,false);
 	}
 }
 
@@ -190,9 +219,11 @@ void MaquinaEstados(void)  {
 		case T1_1_T2_1:
 			if (g_bTecla1 == false)  {
 				MaquinaBotones = T1_0_T2_1_FW;
+				contador_ticks = 0;
 			}
 			else if (g_bTecla2 == false)  {
 				MaquinaBotones = T1_1_T2_0_FW;
+				contador_ticks = 0;
 			}
 			break;
 
@@ -221,8 +252,10 @@ void MaquinaEstados(void)  {
 			else if (g_bTecla2 == false)  {
 				MaquinaBotones = T1_0_T2_0;
 				/*
-				 * Agregar aqui funcion correspondiente para la medicion de tiempo
+				 * Este caso es la medicion AB (tiempo entre flancos B - A segun el enunciado)
 				 */
+				medicion1 = contador_ticks;
+				os_Semaforo_give(&sem_Medicion1_AB);
 			}
 			break;
 
@@ -251,8 +284,10 @@ void MaquinaEstados(void)  {
 			else if (g_bTecla1 == false)  {
 				MaquinaBotones = T1_0_T2_0;
 				/*
-				 * Agregar aqui funcion correspondiente para la medicion de tiempo
+				 * Este caso es la medicion BA (tiempo entre flancos A - B segun el enunciado)
 				 */
+				medicion1 = contador_ticks;
+				os_Semaforo_give(&sem_Medicion1_BA);
 			}
 			break;
 
@@ -262,9 +297,11 @@ void MaquinaEstados(void)  {
 		case T1_0_T2_0:
 			if (g_bTecla2 == true)  {
 				MaquinaBotones = T1_0_T2_1_BK;		//pasamos al estado correspondiente
+				contador_ticks = 0;
 			}
 			else if (g_bTecla1 == true)  {
 				MaquinaBotones = T1_1_T2_0_BK;		//pasamos al estado correspondiente
+				contador_ticks = 0;
 			}
 
 			break;
@@ -296,8 +333,10 @@ void MaquinaEstados(void)  {
 			else if (g_bTecla1 == true)  {
 				MaquinaBotones = T1_1_T2_1;
 				/*
-				 * Agregar aqui funcion correspondiente para la medicion de tiempo
+				 * Este caso es la medicion AB (tiempo entre flancos B - A segun el enunciado)
 				 */
+				medicion2 = contador_ticks;
+				os_Semaforo_give(&sem_Medicion2_CD);
 			}
 			break;
 
@@ -330,8 +369,10 @@ void MaquinaEstados(void)  {
 			else if (g_bTecla2 == true)  {
 				MaquinaBotones = T1_1_T2_1;
 				/*
-				 * Agregar aqui funcion correspondiente para la medicion de tiempo
+				 * Este caso es la medicion AB (tiempo entre flancos B - A segun el enunciado)
 				 */
+				medicion2 = contador_ticks;
+				os_Semaforo_give(&sem_Medicion2_DC);
 			}
 
 			break;
@@ -349,14 +390,16 @@ void MaquinaEstados(void)  {
 int main(void)  {
 	initHardware();
 
-	os_init_task(Led1, &g_sTarea_Led1,PRIORIDAD_1);
-	os_init_task(Led2, &g_sTarea_Led2,PRIORIDAD_1);
+	os_init_task(Led1_AB, &g_sTarea_Led1_AB,PRIORIDAD_1);
+	os_init_task(Led1_BA, &g_sTarea_Led1_BA,PRIORIDAD_1);
+	os_init_task(Led2_AB, &g_sTarea_Led2_AB,PRIORIDAD_1);
+	os_init_task(Led2_BA, &g_sTarea_Led2_BA,PRIORIDAD_1);
 	os_init_task(MaquinaEstados, &g_sTarea_ME,PRIORIDAD_0);
 
-	os_Semaforo_init(&sem_Tecla1_Down);
-	os_Semaforo_init(&sem_Tecla1_Up);
-	os_Semaforo_init(&sem_Tecla2_Down);
-	os_Semaforo_init(&sem_Tecla2_Up);
+	os_Semaforo_init(&sem_Medicion1_AB);
+	os_Semaforo_init(&sem_Medicion1_BA);
+	os_Semaforo_init(&sem_Medicion2_CD);
+	os_Semaforo_init(&sem_Medicion2_DC);
 	os_Semaforo_init(&sem_ActualizarME);
 
 	os_install_IRQ(PIN_INT0_IRQn,tecla1_down_IRQ);
